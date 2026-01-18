@@ -1,2 +1,2 @@
-# econ_lorentz_and_gini
-Expository and interactive tool for introducing the Lorentz curve and Gini coefficient
+# econ_lorenz_and_gini
+Expository and interactive tool for introducing the Lorenz curve and Gini coefficient
