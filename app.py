@@ -12,23 +12,6 @@ def get_lorenz_coords(n_points, p_value):
     y = x**p_value
     return x, y
 
-def calculate_gini_from_dataframe(df):
-    shares = df['Income Share'].values
-    total = np.sum(shares)
-    
-    # Validation: prevent division by zero
-    if total <= 0:
-        return 0.0, np.zeros(len(shares) + 1), 0.0
-    
-    norm_shares = shares / total
-    cum_shares = np.cumsum(np.insert(norm_shares, 0, 0))
-    x = np.linspace(0, 1, len(cum_shares))
-    
-    # Trapezoid Rule using NumPy 2.0 syntax
-    area_b = np.trapezoid(cum_shares, x)
-    gini = (0.5 - area_b) / 0.5
-    return max(0, round(gini, 4)), cum_shares, total
-
 # --- HEADER ---
 st.title("📊 Lorenz Curves and Gini Coefficients")
 st.subheader("Interactive Economics Laboratory")
@@ -37,104 +20,121 @@ tabs = st.tabs(["📖 1. The Concept", "🧪 2. Manual Lab", "🎮 3. The Simula
 
 # --- TAB 1: THE CONCEPT ---
 with tabs[0]:
-    st.header("Understanding the Geometry of Inequality")
-    col1, col2 = st.columns([3, 2])
+    st.header("The Geometry of Distribution")
+    col1, col2 = st.columns([1, 1])
+    
     with col1:
         st.write("""
-        The **Lorenz Curve** visualizes how a nation's total income is distributed across its population.
+        The **Lorenz Curve** maps the cumulative share of income against the cumulative share of the population.
         
-        * **Line of Perfect Equality:** A 45° diagonal line. Every person earns exactly the same.
-        * **Line of Perfect Inequality:** An 'L' shape. One person earns 100% of the income; everyone else earns 0%.
-        * **Area A:** The gap between the Equality Line and the Lorenz Curve.
-        * **Area B:** The area underneath the Lorenz Curve.
+        * **Line of Perfect Equality (Black Dash):** Every person has the same income ($y = x$).
+        * **Line of Perfect Inequality (Grey):** One person has everything; the curve follows the bottom and right axes.
+        * **Area A:** The 'Gap' of inequality.
+        * **Area B:** The area under the actual distribution curve.
         """)
         st.latex(r"Gini = \frac{Area\ A}{Area\ A + Area\ B} = \frac{Area\ A}{0.5}")
+    
     with col2:
-        st.write("### Visual Reference")
-        # Direct instruction for the user to visualize the areas
-        st.write("""
-        On a Lorenz graph:
-        1. The **Top Triangle** above the curve is Area A.
-        2. The **Bottom Shape** under the curve is Area B.
-        3. The Gini is the ratio of that top gap to the entire bottom half of the square.
-        """)
+        # Annotated Concept Plot
+        x_c = np.linspace(0, 1, 100)
+        y_c = x_c**2.5
+        fig_concept = go.Figure()
+        fig_concept.add_trace(go.Scatter(x=[0,1], y=[0,1], name="Equality", line=dict(color="black", dash="dash")))
+        fig_concept.add_trace(go.Scatter(x=[0,1,1], y=[0,0,1], name="Inequality", line=dict(color="silver", width=1)))
+        fig_concept.add_trace(go.Scatter(x=x_c, y=y_c, fill='tonexty', name="Area A", fillcolor='rgba(255, 0, 0, 0.2)', line=dict(color="red")))
+        fig_concept.add_trace(go.Scatter(x=x_c, y=y_c, fill='tozeroy', name="Area B", fillcolor='rgba(0, 0, 255, 0.1)', line=dict(color="red")))
         
+        fig_concept.add_annotation(x=0.4, y=0.6, text="Area A", showarrow=False, font=dict(size=16, color="red"))
+        fig_concept.add_annotation(x=0.7, y=0.2, text="Area B", showarrow=False, font=dict(size=16, color="blue"))
+        fig_concept.update_layout(xaxis_title="Cumulative Pop %", yaxis_title="Cumulative Income %", margin=dict(l=0,r=0,t=0,b=0))
+        st.plotly_chart(fig_concept, use_container_width=True)
+
+
 
 # --- TAB 2: MANUAL LAB ---
 with tabs[1]:
     st.header("The Trapezoid Lab")
-    st.write("Edit the **Income Share** column. The app will normalize your inputs to 100% automatically.")
     
-    default_data = pd.DataFrame({
-        "Quintile": ["Bottom 20%", "Second 20%", "Third 20%", "Fourth 20%", "Top 20%"],
-        "Income Share": [5.0, 10.0, 15.0, 25.0, 45.0]
-    })
+    col_ctrl, col_res = st.columns([1, 2])
     
-    col_edit, col_plot = st.columns([1, 2])
-    
-    with col_edit:
-        st.write("### 1. Input Data")
-        edited_df = st.data_editor(default_data, num_rows="fixed", hide_index=True)
-        gini_val, cum_y, current_total = calculate_gini_from_dataframe(edited_df)
+    with col_ctrl:
+        n_points = st.select_slider("Select Number of Data Points", options=[5, 10, 20], value=5)
+        st.write("Edit the **Income Share** for each segment below:")
         
-        if abs(current_total - 100) > 0.1:
-            st.warning(f"Note: Your shares sum to {current_total}%. We have normalized them to 100% for the calculation.")
+        # Create an editable dataframe based on selected points
+        init_shares = [100/n_points] * n_points
+        df_input = pd.DataFrame({"Segment": range(1, n_points+1), "Income Share": init_shares})
+        edited_df = st.data_editor(df_input, hide_index=True)
         
-        st.metric("Gini Coefficient", gini_val)
+        # Calculate Logic
+        shares = edited_df["Income Share"].values
+        total = np.sum(shares)
+        norm_shares = shares / total if total > 0 else shares
+        cum_y = np.cumsum(np.insert(norm_shares, 0, 0))
+        x_coords = np.linspace(0, 1, n_points + 1)
         
-        st.write("### 2. The Computation")
-        area_a = round(gini_val * 0.5, 4)
-        area_b = round(0.5 - area_a, 4)
-        st.write(f"**Area A (The Gap):** {area_a}")
-        st.write(f"**Area B (Under Curve):** {area_b}")
-        st.write(f"**Total Area (A + B):** 0.5")
+        # Display Math Computation
+        st.write("### Trapezoid Calculations")
+        calc_data = []
+        area_b = 0
+        w = 1/n_points
+        for i in range(n_points):
+            h1, h2 = cum_y[i], cum_y[i+1]
+            seg_area = w * (h1 + h2) / 2
+            area_b += seg_area
+            calc_data.append([f"{h1:.2f}", f"{h2:.2f}", f"{seg_area:.4f}"])
+        
+        calc_df = pd.DataFrame(calc_data, columns=["Height 1", "Height 2", "Area"])
+        st.table(calc_df)
+        
+    with col_res:
+        gini = (0.5 - area_b) / 0.5
+        st.metric("Gini Coefficient", round(gini, 4))
+        
+        fig_man = go.Figure()
+        fig_man.add_trace(go.Scatter(x=[0,1], y=[0,1], name="Equality", line=dict(color="black", dash="dash")))
+        fig_man.add_trace(go.Scatter(x=x_coords, y=cum_y, mode='lines+markers', name="Trapezoid Fit", line=dict(color="red")))
+        
+        # Visualize the Trapezoids
+        for i in range(n_points):
+            fig_man.add_trace(go.Scatter(
+                x=[x_coords[i], x_coords[i], x_coords[i+1], x_coords[i+1]],
+                y=[0, cum_y[i], cum_y[i+1], 0],
+                fill="toself", fillcolor='rgba(255,0,0,0.1)', line=dict(color="rgba(255,0,0,0.2)"),
+                showlegend=False
+            ))
+            
+        fig_man.update_layout(title="Geometric Approximation", xaxis_title="Population", yaxis_title="Income")
+        st.plotly_chart(fig_man, use_container_width=True)
 
-    with col_plot:
-        x_vals = np.linspace(0, 1, len(cum_y))
-        fig = go.Figure()
-        
-        # Perfect Equality & Inequality
-        fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1], name="Perfect Equality", line=dict(color="black", dash="dash")))
-        fig.add_trace(go.Scatter(x=[0, 1, 1], y=[0, 0, 1], name="Perfect Inequality", line=dict(color="silver", dash="dot")))
-        
-        # The Trapezoidal Fit
-        fig.add_trace(go.Scatter(x=x_vals, y=cum_y, fill='tozeroy', mode='lines+markers', 
-                                 name="Lorenz Curve", line=dict(color="red", width=3)))
-        
-        # Show Trapezoid Segments
-        for xv, yv in zip(x_vals, cum_y):
-            fig.add_shape(type="line", x0=xv, y0=0, x1=xv, y1=yv, line=dict(color="rgba(255,0,0,0.2)", width=1))
 
-        fig.update_layout(title="Trapezoidal Rule Approximation", xaxis_title="Population Share", yaxis_title="Income Share")
-        st.plotly_chart(fig, use_container_width=True)
-        
 
 # --- TAB 3: THE SIMULATOR ---
 with tabs[2]:
-    st.header("The Power of Concentration")
-    col_sim_text, col_sim_plot = st.columns([1, 2])
+    st.header("The Function Simulator")
+    st.write("How does a mathematical function translate to inequality?")
     
-    with col_sim_text:
+    n_exp = st.slider("Inequality Intensity (Exponent n)", 1.0, 10.0, 2.0, 0.1)
+    
+    x_sim, y_sim = get_lorenz_coords(100, n_exp)
+    area_sim = np.trapezoid(y_sim, x_sim)
+    g_sim = (0.5 - area_sim) / 0.5
+    
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        st.write(f"Using $L(x) = x^{{{n_exp}}}$")
         st.write("""
-        ### Why the Power Function?
-        We use $L(x) = x^n$ to simulate different economies.
-        * **n = 1.0:** Perfect Equality.
-        * **n = 2.0:** Moderate (Typical developed nation).
-        * **n > 5.0:** Extreme concentration of wealth.
-        """)
-        n_exp = st.slider("Inequality Intensity (n)", 1.0, 10.0, 2.0, 0.1)
+        When we use a power function, the exponent determines how quickly income 'piles up' at the end of the distribution.
         
-        x_sim, y_sim = get_lorenz_coords(100, n_exp)
-        area_sim = np.trapezoid(y_sim, x_sim)
-        g_sim = (0.5 - area_sim) / 0.5
+        A higher **n** creates a deeper curve, meaning the bottom percentages have almost no income, while the top percentage has nearly all of it.
+        """)
         st.metric("Simulated Gini", round(g_sim, 3))
-
-    with col_sim_plot:
+    
+    with c2:
         fig_sim = go.Figure()
-        fig_sim.add_trace(go.Scatter(x=x_sim, y=y_sim, fill='tonexty', name="Simulated Curve", line=dict(color="green")))
-        fig_sim.add_trace(go.Scatter(x=[0, 1], y=[0, 1], line=dict(color="black", dash="dash"), name="Equality"))
-        fig_sim.update_layout(xaxis_title="Population", yaxis_title="Income Share")
+        fig_sim.add_trace(go.Scatter(x=x_sim, y=y_sim, fill='tonexty', name="Lorenz Curve", line=dict(color="green")))
+        fig_sim.add_trace(go.Scatter(x=[0,1], y=[0,1], line=dict(color="black", dash="dash")))
         st.plotly_chart(fig_sim, use_container_width=True)
 
 st.divider()
-st.caption("Version 3.1 - Built for Macroeconomics Instruction")
+st.caption("Standardized for NumPy 2.0+ and Streamlit Cloud")
