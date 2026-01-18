@@ -58,14 +58,13 @@ with tabs[0]:
 # --- TAB 2: COMPUTING GINI ---
 with tabs[1]:
     st.header("Computing Gini Using Variable Trapezoids")
-    st.write("Construct your own distribution. You must ensure both the **Population** and **Income** shares sum to exactly 100%.")
+    st.write("Construct your distribution. Ensure both **Population** and **Income** shares sum to exactly 100%.")
     
     col_ctrl, col_res = st.columns([1, 1.5])
     
     with col_ctrl:
         n_points = st.slider("Number of Population Groups", 2, 20, 5)
         
-        # Initialize data with variable potential
         init_pop = [round(100.0/n_points, 1)] * n_points
         init_inc = [round(100.0/n_points, 1)] * n_points
         df_input = pd.DataFrame({
@@ -79,7 +78,6 @@ with tabs[1]:
         pop_total = round(edited_df["Pop. Share %"].sum(), 2)
         inc_total = round(edited_df["Income Share %"].sum(), 2)
         
-        # Validation UI
         c1, c2 = st.columns(2)
         with c1:
             if pop_total == 100.0: st.success(f"Pop: {pop_total}% ✅")
@@ -90,15 +88,14 @@ with tabs[1]:
 
     with col_res:
         if pop_total == 100.0 and inc_total == 100.0:
-            # Process variable widths
             dx = edited_df["Pop. Share %"].values / 100
             dy = edited_df["Income Share %"].values / 100
             
             x_coords = np.cumsum(np.insert(dx, 0, 0))
             y_coords = np.cumsum(np.insert(dy, 0, 0))
             
-            # Step-by-Step Table
-            st.write("### The Math of Area B")
+            # MATH TABLE WITH FORMULAS IN HEADERS
+            st.write("### 1. Trapezoidal Step-Summation")
             calc_rows = []
             area_b = 0
             for i in range(len(dx)):
@@ -109,28 +106,43 @@ with tabs[1]:
                 area_b += seg_area
                 calc_rows.append([f"{base:.2f}", f"{h1:.3f}", f"{h2:.3f}", f"{avg_h:.3f}", f"{seg_area:.4f}"])
             
-            st.table(pd.DataFrame(calc_rows, columns=["Base (Δx)", "H1 (yᵢ₋₁)", "H2 (yᵢ)", "Avg Height", "Area"]))
+            math_df = pd.DataFrame(calc_rows, columns=[
+                "Base (xᵢ - xᵢ₋₁)", 
+                "yᵢ₋₁", 
+                "yᵢ", 
+                "Avg Height (yᵢ + yᵢ₋₁)/2", 
+                "Area (Base × Avg H)"
+            ])
+            st.table(math_df)
             
+            # GINI CALCULATION DISPLAY
+            st.write("### 2. Final Summation")
+            st.latex(r"Area\ B = \sum Area_{segments} = " + f"{area_b:.4f}")
             gini = (0.5 - area_b) / 0.5
-            st.metric("Gini Coefficient (1 - 2B)", round(gini, 4))
+            st.metric("Final Gini (1 - 2B)", round(gini, 4))
             
-            # Variable Trapezoid Plot
+            # PLOT WITH VERTICAL LINES
             fig_man = go.Figure()
             fig_man.add_trace(go.Scatter(x=[0,1], y=[0,1], name="Equality", line=dict(color="black", dash="dash")))
             fig_man.add_trace(go.Scatter(x=x_coords, y=y_coords, mode='lines+markers', name="Lorenz Curve", line=dict(color="red")))
             
             for i in range(len(dx)):
+                # Draw the trapezoid body
                 fig_man.add_trace(go.Scatter(
                     x=[x_coords[i], x_coords[i], x_coords[i+1], x_coords[i+1]],
                     y=[0, y_coords[i], y_coords[i+1], 0],
                     fill="toself", fillcolor='rgba(255,0,0,0.1)', line=dict(width=0), showlegend=False
                 ))
-            fig_man.update_layout(title="Variable-Width Trapezoid Rule", xaxis_title="Cumulative Population Share", yaxis_title="Cumulative Income Share")
+                # Explicit vertical boundary lines
+                fig_man.add_shape(type="line", x0=x_coords[i+1], y0=0, x1=x_coords[i+1], y1=y_coords[i+1],
+                                  line=dict(color="rgba(0,0,0,0.3)", width=1, dash="dot"))
+
+            fig_man.update_layout(title="Visualizing the Sum of Areas", xaxis_title="Cumulative Population Share", yaxis_title="Cumulative Income Share")
             st.plotly_chart(fig_man, use_container_width=True)
             
             
         else:
-            st.info("Balance both the Population and Income shares to 100% to generate the Gini Coefficient.")
+            st.info("Balance both the Population and Income shares to 100% to calculate the Gini.")
 
 # --- TAB 3: THE SIMULATOR ---
 with tabs[2]:
@@ -146,7 +158,7 @@ with tabs[2]:
         st.latex(r"L(x) = x^{" + f"{n_exp:.1f}" + r"}")
         st.write(f"""
         ### Continuous Model Analysis:
-        * **Area B** (Integral): **{area_sim:.4f}**
+        * **Area B** (Total Integral): **{area_sim:.4f}**
         * **Gini** (1 - 2B): **{round(g_sim, 3)}**
         """)
         st.metric("Simulated Gini", round(g_sim, 3))
