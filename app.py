@@ -64,14 +64,12 @@ with tabs[0]:
         """)
         st.latex(r"Gini = \frac{Area\ A}{Area\ A + Area\ B}")
     with col2:
-        # FIXED: Using triple quotes for multi-line string support
         st.success("""
         💡 **The Statistics Connection**
 
         In probability theory, the Lorenz curve is a cumulative distribution function of a probability distribution. 
         The Gini coefficient is actually equal to half of the relative mean absolute difference of the distribution.
         """)
-        
 
 # --- TAB 2: MANUAL LAB ---
 with tabs[1]:
@@ -99,7 +97,6 @@ with tabs[1]:
         fig_disc.add_trace(go.Scatter(x=[0,1], y=[0,1], name="Equality", line=dict(dash='dash', color='black')))
         fig_disc.update_layout(xaxis_title="Cumulative Population %", yaxis_title="Cumulative Income %")
         st.plotly_chart(fig_disc, use_container_width=True)
-        
 
     with col_g2:
         st.metric("Calculated Gini", gini_disc)
@@ -124,7 +121,13 @@ with tabs[2]:
         
     with col_s2:
         x_sim, y_sim = get_lorenz_coords(100, n_exp)
-        area_sim = np.trapz(y_sim, x_sim)
+        
+        # FIXED: Avoiding np.trapz to prevent version compatibility issues
+        # We use the same reliable logic from our details engine
+        area_sim = 0
+        for i in range(1, len(x_sim)):
+            area_sim += (x_sim[i] - x_sim[i-1]) * (y_sim[i-1] + y_sim[i]) / 2
+            
         gini_sim = (0.5 - area_sim) / 0.5
         
         fig_sim = go.Figure()
@@ -137,11 +140,8 @@ st.divider()
 st.caption("Math Tip: The Gini Coefficient is the ratio of the area between the line of equality and the Lorenz curve to the total area under the line of equality.")
 
 # --- END OF FILE BUFFER ---
-# The following comments are added to prevent code truncation during copy-paste.
 # -------------------------------------------------------------------------
-# End of Application Logic.
-# This app was built to demonstrate the relationship between geometry, 
-# statistics, and macroeconomics through the lens of Lorenz Curves.
-# Created for educational use in high school or undergraduate settings.
+# The code above represents the complete logic for the Streamlit App.
+# This buffer prevents truncation issues during copy-paste.
 # -------------------------------------------------------------------------
 # [EOF]
