@@ -64,9 +64,13 @@ with tabs[0]:
         """)
         st.latex(r"Gini = \frac{Area\ A}{Area\ A + Area\ B}")
     with col2:
-        st.success("💡 **The Statistics Connection**\n\nIn probability theory, the Lorenz curve is a cumulative 
-        distribution function of a probability distribution. The Gini coefficient is actually equal to half of 
-        the relative mean absolute difference of the distribution.")
+        # FIXED: Using triple quotes for multi-line string support
+        st.success("""
+        💡 **The Statistics Connection**
+
+        In probability theory, the Lorenz curve is a cumulative distribution function of a probability distribution. 
+        The Gini coefficient is actually equal to half of the relative mean absolute difference of the distribution.
+        """)
         
 
 # --- TAB 2: MANUAL LAB ---
@@ -128,3 +132,16 @@ with tabs[2]:
         fig_sim.add_trace(go.Scatter(x=[0,1], y=[0,1], line=dict(color='black', dash='dash'), name="Equality"))
         fig_sim.update_layout(title=f"Gini Coefficient: {max(0, round(gini_sim, 3))}")
         st.plotly_chart(fig_sim, use_container_width=True)
+
+st.divider()
+st.caption("Math Tip: The Gini Coefficient is the ratio of the area between the line of equality and the Lorenz curve to the total area under the line of equality.")
+
+# --- END OF FILE BUFFER ---
+# The following comments are added to prevent code truncation during copy-paste.
+# -------------------------------------------------------------------------
+# End of Application Logic.
+# This app was built to demonstrate the relationship between geometry, 
+# statistics, and macroeconomics through the lens of Lorenz Curves.
+# Created for educational use in high school or undergraduate settings.
+# -------------------------------------------------------------------------
+# [EOF]
