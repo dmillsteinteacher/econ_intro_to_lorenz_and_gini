@@ -48,7 +48,6 @@ with tabs[0]:
         st.plotly_chart(fig_concept, use_container_width=True)
 
 
-
 # --- TAB 2: COMPUTING GINI ---
 with tabs[1]:
     st.header("Computing Gini Using Variable Trapezoids")
@@ -59,32 +58,26 @@ with tabs[1]:
     with col_ctrl:
         n_points = st.slider("Number of Population Groups", 2, 20, 5)
         
-        # Initial Decimal values
         init_val = round(1.0/n_points, 2)
-        
-        # Create a base dataframe for editing
         df_input = pd.DataFrame({
             "Group": range(1, n_points+1), 
             "Pop. Share": [init_val] * n_points,
             "Income Share": [init_val] * n_points
         })
         
-        # Calculate cumulative values for the input table
         edited_df = st.data_editor(df_input, hide_index=True, use_container_width=True)
         
-        # Generate the cumulative columns for display/logic
         pop_shares = edited_df["Pop. Share"].values
         inc_shares = edited_df["Income Share"].values
-        
         cum_pop = np.cumsum(pop_shares)
         cum_inc = np.cumsum(inc_shares)
         
-        # Create a display-only version of the table with colored cumulative columns
         display_df = edited_df.copy()
         display_df["Cumulative Pop (xᵢ)"] = cum_pop
         display_df["Cumulative Inc (yᵢ)"] = cum_inc
         
         st.write("### Data Preview & Tracking")
+        # Re-implemented Gradient (Requires Matplotlib in requirements.txt)
         st.dataframe(
             display_df.style.background_gradient(subset=["Cumulative Pop (xᵢ)", "Cumulative Inc (yᵢ)"], cmap="Blues"),
             hide_index=True
@@ -131,7 +124,6 @@ with tabs[1]:
             gini = (0.5 - area_b) / 0.5
             st.metric("Final Gini Coefficient (1 - 2B)", round(gini, 4))
             
-            # Plot with boundaries
             fig_man = go.Figure()
             fig_man.add_trace(go.Scatter(x=[0,1], y=[0,1], name="Equality", line=dict(color="black", dash="dash")))
             fig_man.add_trace(go.Scatter(x=x_coords, y=y_coords, mode='lines+markers', name="Lorenz Curve", line=dict(color="red")))
@@ -147,10 +139,10 @@ with tabs[1]:
 
             fig_man.update_layout(xaxis_title="Cumulative Population Share", yaxis_title="Cumulative Income Share")
             st.plotly_chart(fig_man, use_container_width=True)
-            
-            
+
+
         else:
             st.info("Balance both Population and Income totals to 1.00 to unlock the Gini calculation.")
 
 st.divider()
-st.caption("Economics Instructional Tool | Decimal-Logic Version 4.0")
+st.caption("Economics Instructional Tool | Version 4.2 (Matplotlib Enabled)")
