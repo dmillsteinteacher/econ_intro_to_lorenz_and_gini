@@ -16,7 +16,7 @@ def get_lorenz_coords(n_points, p_value):
 st.title("📊 Lorenz Curves and Gini Coefficients")
 st.subheader("Interactive Economics Laboratory")
 
-tabs = st.tabs(["📖 1. The Concept", "🧪 2. Computing Gini", "🎮 3. The Simulator"])
+tabs = st.tabs(["📖 1. The Concept", "🧪 2. Computing Gini"])
 
 # --- TAB 1: THE CONCEPT ---
 with tabs[0]:
@@ -37,6 +37,7 @@ with tabs[0]:
         st.latex(r"Gini = \frac{Area\ A}{Area\ A + Area\ B} = \frac{0.5 - B}{0.5} = 1 - 2B")
     
     with col2:
+        # Static example curve for conceptual clarity
         x_c = np.linspace(0, 1, 100)
         y_c = x_c**2.5 
         fig_concept = go.Figure()
@@ -44,6 +45,7 @@ with tabs[0]:
         fig_concept.add_trace(go.Scatter(x=[0,1], y=[0,1], name="Equality", line=dict(color="black", dash="dash")))
         fig_concept.add_trace(go.Scatter(x=[0,1,1], y=[0,0,1], name="Inequality", line=dict(color="silver", width=1)))
         
+        # Shading Areas
         fig_concept.add_trace(go.Scatter(x=x_c, y=x_c, showlegend=False, line=dict(color='rgba(0,0,0,0)')))
         fig_concept.add_trace(go.Scatter(x=x_c, y=y_c, fill='tonexty', name="Area A", fillcolor='rgba(255, 0, 0, 0.2)', line=dict(color="red")))
         fig_concept.add_trace(go.Scatter(x=x_c, y=y_c, fill='tozeroy', name="Area B", fillcolor='rgba(0, 0, 255, 0.1)', line=dict(color="red")))
@@ -65,12 +67,12 @@ with tabs[1]:
     with col_ctrl:
         n_points = st.slider("Number of Population Groups", 2, 20, 5)
         
-        init_pop = [round(100.0/n_points, 1)] * n_points
-        init_inc = [round(100.0/n_points, 1)] * n_points
+        # Standard starting values
+        init_val = round(100.0/n_points, 1)
         df_input = pd.DataFrame({
             "Group": range(1, n_points+1), 
-            "Pop. Share %": init_pop,
-            "Income Share %": init_inc
+            "Pop. Share %": [init_val] * n_points,
+            "Income Share %": [init_val] * n_points
         })
         
         edited_df = st.data_editor(df_input, hide_index=True, use_container_width=True)
@@ -94,7 +96,6 @@ with tabs[1]:
             x_coords = np.cumsum(np.insert(dx, 0, 0))
             y_coords = np.cumsum(np.insert(dy, 0, 0))
             
-            # MATH TABLE WITH FORMULAS IN HEADERS
             st.write("### 1. Trapezoidal Step-Summation")
             calc_rows = []
             area_b = 0
@@ -115,25 +116,21 @@ with tabs[1]:
             ])
             st.table(math_df)
             
-            # GINI CALCULATION DISPLAY
             st.write("### 2. Final Summation")
             st.latex(r"Area\ B = \sum Area_{segments} = " + f"{area_b:.4f}")
             gini = (0.5 - area_b) / 0.5
             st.metric("Final Gini (1 - 2B)", round(gini, 4))
             
-            # PLOT WITH VERTICAL LINES
             fig_man = go.Figure()
             fig_man.add_trace(go.Scatter(x=[0,1], y=[0,1], name="Equality", line=dict(color="black", dash="dash")))
             fig_man.add_trace(go.Scatter(x=x_coords, y=y_coords, mode='lines+markers', name="Lorenz Curve", line=dict(color="red")))
             
             for i in range(len(dx)):
-                # Draw the trapezoid body
                 fig_man.add_trace(go.Scatter(
                     x=[x_coords[i], x_coords[i], x_coords[i+1], x_coords[i+1]],
                     y=[0, y_coords[i], y_coords[i+1], 0],
                     fill="toself", fillcolor='rgba(255,0,0,0.1)', line=dict(width=0), showlegend=False
                 ))
-                # Explicit vertical boundary lines
                 fig_man.add_shape(type="line", x0=x_coords[i+1], y0=0, x1=x_coords[i+1], y1=y_coords[i+1],
                                   line=dict(color="rgba(0,0,0,0.3)", width=1, dash="dot"))
 
@@ -144,30 +141,5 @@ with tabs[1]:
         else:
             st.info("Balance both the Population and Income shares to 100% to calculate the Gini.")
 
-# --- TAB 3: THE SIMULATOR ---
-with tabs[2]:
-    st.header("The Function Simulator")
-    n_exp = st.slider("Inequality Intensity (Exponent n)", 1.0, 10.0, 2.0, 0.1)
-    
-    x_sim, y_sim = get_lorenz_coords(100, n_exp)
-    area_sim = np.trapezoid(y_sim, x_sim)
-    g_sim = (0.5 - area_sim) / 0.5
-    
-    c1, c2 = st.columns([1, 2])
-    with c1:
-        st.latex(r"L(x) = x^{" + f"{n_exp:.1f}" + r"}")
-        st.write(f"""
-        ### Continuous Model Analysis:
-        * **Area B** (Total Integral): **{area_sim:.4f}**
-        * **Gini** (1 - 2B): **{round(g_sim, 3)}**
-        """)
-        st.metric("Simulated Gini", round(g_sim, 3))
-    
-    with c2:
-        fig_sim = go.Figure()
-        fig_sim.add_trace(go.Scatter(x=x_sim, y=y_sim, fill='tonexty', name="Lorenz Curve", line=dict(color="green")))
-        fig_sim.add_trace(go.Scatter(x=[0,1], y=[0,1], line=dict(color="black", dash="dash")))
-        st.plotly_chart(fig_sim, use_container_width=True)
-
 st.divider()
-st.caption("Standardized for NumPy 2.0+ and Streamlit Cloud")
+st.caption("Economics Instructional Tool | Standardized for NumPy 2.0+")
