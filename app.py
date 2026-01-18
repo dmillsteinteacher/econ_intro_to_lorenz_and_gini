@@ -48,6 +48,7 @@ with tabs[0]:
         st.plotly_chart(fig_concept, use_container_width=True)
 
 
+
 # --- TAB 2: COMPUTING GINI ---
 with tabs[1]:
     st.header("Computing Gini Using Variable Trapezoids")
@@ -65,6 +66,7 @@ with tabs[1]:
             "Income Share": [init_val] * n_points
         })
         
+        # Input Data Editor
         edited_df = st.data_editor(df_input, hide_index=True, use_container_width=True)
         
         pop_shares = edited_df["Pop. Share"].values
@@ -72,14 +74,14 @@ with tabs[1]:
         cum_pop = np.cumsum(pop_shares)
         cum_inc = np.cumsum(inc_shares)
         
+        # Tracking Table with Light Gray background for non-editable columns
         display_df = edited_df.copy()
         display_df["Cumulative Pop (xᵢ)"] = cum_pop
         display_df["Cumulative Inc (yᵢ)"] = cum_inc
         
         st.write("### Data Preview & Tracking")
-        # Re-implemented Gradient (Requires Matplotlib in requirements.txt)
         st.dataframe(
-            display_df.style.background_gradient(subset=["Cumulative Pop (xᵢ)", "Cumulative Inc (yᵢ)"], cmap="Blues"),
+            display_df.style.set_properties(**{'background-color': '#f0f2f6'}, subset=["Cumulative Pop (xᵢ)", "Cumulative Inc (yᵢ)"]),
             hide_index=True
         )
         
@@ -110,12 +112,13 @@ with tabs[1]:
                 area_b += seg_area
                 calc_rows.append([f"{base:.2f}", f"{h1:.3f}", f"{h2:.3f}", f"{avg_h:.3f}", f"{seg_area:.4f}"])
             
+            # Restored headers connecting Geometry to Economics
             math_df = pd.DataFrame(calc_rows, columns=[
-                "Base (Pop. Segment Δx)", 
-                "Height 1 (yᵢ₋₁)", 
-                "Height 2 (yᵢ)", 
-                "Avg Height (yᵢ+yᵢ₋₁)/2", 
-                "Area (Base × Avg H)"
+                "Base (Pop. Share Δx)", 
+                "Lower Income (yᵢ₋₁)", 
+                "Upper Income (yᵢ)", 
+                "Avg Income (yᵢ+yᵢ₋₁)/2", 
+                "Area (Base × Avg Income)"
             ])
             st.table(math_df)
             
@@ -141,8 +144,9 @@ with tabs[1]:
             st.plotly_chart(fig_man, use_container_width=True)
 
 
+
         else:
             st.info("Balance both Population and Income totals to 1.00 to unlock the Gini calculation.")
 
 st.divider()
-st.caption("Economics Instructional Tool | Version 4.2 (Matplotlib Enabled)")
+st.caption("Economics Instructional Tool | Version 4.3")
